@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>app</title>
+    <style>
+    body {
+      width: 100%;
+      height: 100%;
+      background: #333;
+    }
+    #theCanvas {
+        width: 100%;
+        height: 100%;
+    }
+    div#footer {
+        position: fixed;
+        width: 100%;
+        bottom: 26px;
+        left: 0;
+        color: white;
+        text-align: center;
+    }
+
+    div#tips {
+      position: fixed;
+        width: 100%;
+        bottom: 10px;
+        left: 0;
+        color: white;
+        text-align: center;
+        font-size: 12px;
+    }
+    h3 {
+      line-height: 45px;
+      margin: 0 12px;
+      display: inline;
+      font-family: 'Karla', sans-serif;
+    }</style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="theCanvas"></canvas>
+        <div id="tips"><span>在画布上点击生成若干白点，点击开始按钮后开始连线</span></div>
+        <div id="footer">
+            <h3 id="start">开始</h3>
+            <h3 id="pause">暂停</h3>
+            <h3 id="restart">重新开始</h3>
+        </div>
+    </div>
+    <script>
+    let c = document.getElementById("theCanvas");
+    let start = document.getElementById("start");
+    let pause = document.getElementById("pause");
+    let cntinue = document.getElementById("start");
+    let restart = document.getElementById("restart");
+
+    let ctx = c.getContext("2d"),
+      halfWidth = window.innerWidth / 2,
+      halfHeight = window.innerHeight / 2;
+
+    ctx.canvas.width = window.innerWidth;
+    ctx.canvas.height = window.innerHeight;
+
+    let drawArray = []
+
+    c.addEventListener('click', addDot);
+    let prevX = 0,
+      prevY = 0,
+      cx = 0,
+      cy = 0;
+
+    function addDot(e) {
+      let size = 5;
+
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+
+      ctx.beginPath();
+
+      if (e.x && e.y) {
+        drawDot(e.x, e.y, size);
+      } else {
+        drawDot(e.clientX, e.clientY, size);
+      }
+    }
+
+    function reloadDot(){
+      if(drawArray){
+        newArray = drawArray;
+        drawArray = [];
+        newArray.forEach(ele => {
+          addDot(ele);
+        });
+      }
+    }
+
+    function drawDot(x, y, s) {
+      ctx.arc(x, y, s, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.stroke(); 
+      drawArray.push({'x':x,'y':y})
+    }
+
+    class AnimateLine {
+        constructor (points) {
+            this.points = points
+            this.index = 0
+            this.init()
+        }
+        init() {
+            this.canvas = document.querySelector('#theCanvas')
+            this.context = this.canvas.getContext('2d')
+            this.point1 = this.points[this.index]
+            this.point2 = this.points[++this.index]
+            this.x1 = this.lastX =  this.point1.x
+            this.y1 = this.lastY = this.point1.y
+            this.x2 = this.point2.x
+            this.y2 = this.point2.y
+        }
+        draw() {
+            const dx = (this.x2 - this.x1) / 100
+            const dy = (this.y2 - this.y1) / 100
+
+            let x = this.lastX + dx
+            let y = this.lastY + dy
+
+            let overflow = false
+
+            if (dx > 0 && x >= this.x2 || dx < 0 && x <= this.x2) {
+                x = this.x2
+                overflow = true
+            }
+            if (dy > 0 && y >= this.y2 || dy < 0 && y <= this.y2) {
+                y = this.y2
+                overflow = true
+            }
+
+            if (overflow) {
+                if (this.points[this.index + 1]) {
+                    this.init()
+                } else {
+                    this.pause()
+                }
+            }
+
+            this.context.moveTo(this.lastX, this.lastY);
+            this.context.lineTo(x, y)
+            this.context.stroke()
+            this.lastX = x
+            this.lastY = y
+        }
+
+        start() {
+            if(!drawArray) return;
+            clearInterval(this.timer)
+            this.timer = setInterval(this.draw.bind(this), 20)
+        }
+
+        clear() {
+          this.context.clearRect(0, 0, this.canvas.width, this.canvas.height)
+          this.canvas.width = this.canvas.width
+          this.index = 0
+          clearInterval(this.timer)
+        }
+
+        pause() {
+            clearInterval(this.timer)
+        }
+      }
+
+      var animateLine = null;
+
+      start.onclick = () => {
+        
+        if(!animateLine){
+          animateLine = new AnimateLine(drawArray)
+        }
+        
+        animateLine.start()
+      }
+      pause.onclick = () => animateLine.pause()
+      restart.onclick = () => {
+        animateLine.clear();
+        reloadDot();
+        animateLine = new AnimateLine(drawArray)
+        animateLine.start()
+      }
+
+    </script>
+  </body>
+</html>
